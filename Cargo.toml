@@ -2,6 +2,12 @@
 name = "qproxy"
 version = "0.1.0"
 edition = "2021"
+authors = ["QuanNguyen<quanna.dev@gmail.com>"]
+repository = "https://github.com/quannadev/qproxy"
+description = "A simple forward proxy server written in Rust"
+readme = "README.md"
+homepage = "https://github.com/quannadev/qproxy"
+license = "MIT"
 
 [lib]
 name = "qproxy"
