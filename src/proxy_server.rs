@@ -17,14 +17,27 @@ pub struct ForwardProxy {
 }
 
 impl ForwardProxy {
-    pub async fn new(port: u16, proxy_str: String) -> Result<ForwardProxy> {
+    pub fn new(port: u16, proxy_str: String) -> Result<ForwardProxy> {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         let proxy = Proxy::from_str(&proxy_str).map_err(|e| Error::new(std::io::ErrorKind::Other, e))?;
-        Ok(ForwardProxy {
+        let sv = ForwardProxy {
             port,
             addr,
             proxy,
-        })
+        };
+        match sv.check_proxy() {
+            Ok(_) => {
+                Ok(sv)
+            }
+            Err(_) => {
+                return Err(
+                    Error::new(
+                        std::io::ErrorKind::Other,
+                        "Proxy is not working",
+                    )
+                );
+            }
+        }
     }
 
     fn remote(proxy: Arc<Proxy>) -> Result<TcpStream> {
@@ -190,6 +203,10 @@ impl ForwardProxy {
         let mut buffer: [u8; 10] = [0; 10];
         remote.read(&mut buffer)?;
         Ok(true)
+    }
+
+    pub fn get_proxy(&self) -> Proxy {
+        self.proxy.clone()
     }
 
     pub fn start(&self) -> Result<()> {
