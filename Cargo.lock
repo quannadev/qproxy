@@ -275,7 +275,7 @@ dependencies = [
 
 [[package]]
 name = "qproxy"
-version = "0.1.5"
+version = "0.1.5-1"
 dependencies = [
  "clap",
  "tokio",

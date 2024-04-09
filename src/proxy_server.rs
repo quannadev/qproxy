@@ -5,7 +5,6 @@ use crate::proxy_model::{Proxy};
 use std::io::{copy, Read, Write, Result, Error};
 use std::process::exit;
 use std::thread;
-use std::time::Duration;
 
 
 const SOCKS_VERSION: u8 = 0x05;
@@ -21,23 +20,14 @@ pub struct ForwardProxy {
 impl ForwardProxy {
     pub fn new_with_proxy(port: u16, proxy: Proxy) -> Result<ForwardProxy> {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
-        if Self::check_port(addr) {
-            return Err(
-                Error::new(
-                    std::io::ErrorKind::Other,
-                    "Port is not available",
-                )
-            );
-        }
-        let server = TcpListener::bind(&addr)?;
-        let mut sv = ForwardProxy {
-            addr,
-            proxy,
-            server: Arc::new(server),
-        };
-        match sv.check_proxy() {
-            Ok(_) => {
-                Ok(sv)
+        match ForwardProxy::check_proxy(proxy) {
+            Ok(proxy) => {
+                let server = TcpListener::bind(&addr)?;
+                Ok(ForwardProxy {
+                    addr,
+                    proxy,
+                    server: Arc::new(server),
+                })
             }
             Err(_) => {
                 return Err(
@@ -197,14 +187,10 @@ impl ForwardProxy {
         Ok(())
     }
 
-    fn check_port(addr: SocketAddr) -> bool {
-        TcpStream::connect_timeout(&addr, Duration::from_secs(5)).is_ok()
-    }
-
-    pub fn check_proxy(&mut self) -> Result<bool> {
+    pub fn check_proxy(proxy: Proxy) -> Result<Proxy> {
         let start = std::time::Instant::now();
-        let proxy = Arc::new(self.proxy.clone());
-        let mut remote = Self::remote(proxy)?;
+        let proxy_check = Arc::new(proxy.clone());
+        let mut remote = Self::remote(proxy_check)?;
         let dest = "httpbin.org:80";
         remote.write(&[
             SOCKS_VERSION, // SOCKS version
@@ -218,9 +204,10 @@ impl ForwardProxy {
         let mut buffer: [u8; 10] = [0; 10];
         remote.read(&mut buffer)?;
         let latency = start.elapsed();
-        self.proxy.latency = latency;
-        self.proxy.is_working = true;
-        Ok(true)
+        let mut new_proxy = proxy.clone();
+        new_proxy.latency = latency;
+        new_proxy.is_working = true;
+        Ok(new_proxy)
     }
 
     pub fn get_proxy(&self) -> Proxy {
