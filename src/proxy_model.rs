@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct ProxyAuth {
@@ -11,6 +12,8 @@ pub struct Proxy {
     pub uri: String,
     pub port: u16,
     pub auth: Option<ProxyAuth>,
+    pub is_working: bool,
+    pub latency: Duration,
 }
 
 impl FromStr for Proxy {
@@ -28,6 +31,8 @@ impl FromStr for Proxy {
                 uri,
                 port,
                 auth: None,
+                is_working: false,
+                latency: Duration::from_secs(0),
             });
         }
         let user = parts[2].parse().expect("Invalid proxy user");
@@ -36,6 +41,8 @@ impl FromStr for Proxy {
             uri,
             port,
             auth: Some(ProxyAuth { user, pass }),
+            is_working: false,
+            latency: Duration::from_secs(0),
         })
     }
 }

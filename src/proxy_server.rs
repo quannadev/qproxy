@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::proxy_model::{Proxy};
 use std::io::{copy, Read, Write, Result, Error};
 use std::thread;
+use std::time::Duration;
 
 
 const SOCKS_VERSION: u8 = 0x05;
@@ -18,8 +19,16 @@ pub struct ForwardProxy {
 impl ForwardProxy {
     pub fn new(port: u16, proxy_str: String) -> Result<ForwardProxy> {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
+        if Self::check_port(addr) {
+            return Err(
+                Error::new(
+                    std::io::ErrorKind::Other,
+                    "Port is not available",
+                )
+            );
+        }
         let proxy = Proxy::from_str(&proxy_str).map_err(|e| Error::new(std::io::ErrorKind::Other, e))?;
-        let sv = ForwardProxy {
+        let mut sv = ForwardProxy {
             addr,
             proxy,
         };
@@ -185,7 +194,12 @@ impl ForwardProxy {
         Ok(())
     }
 
-    pub fn check_proxy(&self) -> Result<bool> {
+    fn check_port(addr: SocketAddr) -> bool {
+        TcpStream::connect_timeout(&addr, Duration::from_secs(5)).is_ok()
+    }
+
+    pub fn check_proxy(&mut self) -> Result<bool> {
+        let start = std::time::Instant::now();
         let proxy = Arc::new(self.proxy.clone());
         let mut remote = Self::remote(proxy)?;
         let dest = "httpbin.org:80";
@@ -200,6 +214,9 @@ impl ForwardProxy {
         remote.write(&[0x00, 0x50])?;
         let mut buffer: [u8; 10] = [0; 10];
         remote.read(&mut buffer)?;
+        let latency = start.elapsed();
+        self.proxy.latency = latency;
+        self.proxy.is_working = true;
         Ok(true)
     }
 
@@ -207,20 +224,19 @@ impl ForwardProxy {
         self.proxy.clone()
     }
 
+    pub fn get_addr(&self) -> SocketAddr {
+        self.addr.clone()
+    }
+
     pub fn start(&self) -> Result<()> {
-        match self.check_proxy() {
-            Ok(_) => {
-                println!("Proxy is working");
-            }
-            Err(_) => {
-                println!("Proxy is not working");
-                return Err(
-                    Error::new(
-                        std::io::ErrorKind::Other,
-                        "Proxy is not working",
-                    )
-                );
-            }
+        if !self.proxy.is_working {
+            println!("Proxy is not working");
+            return Err(
+                Error::new(
+                    std::io::ErrorKind::Other,
+                    "Proxy is not working",
+                )
+            );
         }
         let server = TcpListener::bind(&self.addr)?;
         println!("Listening on: socks5://{}", self.addr);
