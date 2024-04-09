@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -47,5 +48,15 @@ impl FromStr for Proxy {
             latency: Duration::from_secs(0),
             used: true,
         })
+    }
+}
+
+impl Display for Proxy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match &self.auth {
+            Some(auth) => format!("{}:{}:{}:{}", self.uri, self.port, auth.user, auth.pass),
+            None => format!("{}:{}", self.uri, self.port),
+        };
+        write!(f, "{}", str)
     }
 }

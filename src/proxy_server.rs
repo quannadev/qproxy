@@ -19,7 +19,7 @@ pub struct ForwardProxy {
 }
 
 impl ForwardProxy {
-    pub fn new(port: u16, proxy_str: String) -> Result<ForwardProxy> {
+    pub fn new_with_proxy(port: u16, proxy: Proxy) -> Result<ForwardProxy> {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         if Self::check_port(addr) {
             return Err(
@@ -29,7 +29,6 @@ impl ForwardProxy {
                 )
             );
         }
-        let proxy = Proxy::from_str(&proxy_str).map_err(|e| Error::new(std::io::ErrorKind::Other, e))?;
         let server = TcpListener::bind(&addr)?;
         let mut sv = ForwardProxy {
             addr,
@@ -266,3 +265,20 @@ impl ForwardProxy {
     }
 }
 
+
+impl TryFrom<(u16, Proxy)> for ForwardProxy {
+    type Error = Error;
+
+    fn try_from(value: (u16, Proxy)) -> Result<Self> {
+        ForwardProxy::new_with_proxy(value.0, value.1)
+    }
+}
+
+impl TryFrom<(u16, String)> for ForwardProxy {
+    type Error = Error;
+
+    fn try_from((port, proxy_str): (u16, String)) -> Result<Self> {
+        let proxy = Proxy::from_str(&proxy_str).map_err(|e| Error::new(std::io::ErrorKind::Other, e))?;
+        return ForwardProxy::try_from((port, proxy));
+    }
+}
