@@ -11,7 +11,6 @@ const AUTHENTICATION_VERSION: u8 = 0x01;
 
 #[derive(Debug, Clone)]
 pub struct ForwardProxy {
-    port: u16,
     addr: SocketAddr,
     proxy: Proxy,
 }
@@ -21,7 +20,6 @@ impl ForwardProxy {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         let proxy = Proxy::from_str(&proxy_str).map_err(|e| Error::new(std::io::ErrorKind::Other, e))?;
         let sv = ForwardProxy {
-            port,
             addr,
             proxy,
         };
