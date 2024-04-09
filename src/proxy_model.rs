@@ -14,6 +14,7 @@ pub struct Proxy {
     pub auth: Option<ProxyAuth>,
     pub is_working: bool,
     pub latency: Duration,
+    pub used: bool,
 }
 
 impl FromStr for Proxy {
@@ -33,6 +34,7 @@ impl FromStr for Proxy {
                 auth: None,
                 is_working: false,
                 latency: Duration::from_secs(0),
+                used: true,
             });
         }
         let user = parts[2].parse().expect("Invalid proxy user");
@@ -43,6 +45,7 @@ impl FromStr for Proxy {
             auth: Some(ProxyAuth { user, pass }),
             is_working: false,
             latency: Duration::from_secs(0),
+            used: true,
         })
     }
 }

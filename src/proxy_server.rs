@@ -1,8 +1,9 @@
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc};
 use crate::proxy_model::{Proxy};
 use std::io::{copy, Read, Write, Result, Error};
+use std::process::exit;
 use std::thread;
 use std::time::Duration;
 
@@ -14,6 +15,7 @@ const AUTHENTICATION_VERSION: u8 = 0x01;
 pub struct ForwardProxy {
     addr: SocketAddr,
     proxy: Proxy,
+    server: Arc<TcpListener>,
 }
 
 impl ForwardProxy {
@@ -28,9 +30,11 @@ impl ForwardProxy {
             );
         }
         let proxy = Proxy::from_str(&proxy_str).map_err(|e| Error::new(std::io::ErrorKind::Other, e))?;
+        let server = TcpListener::bind(&addr)?;
         let mut sv = ForwardProxy {
             addr,
             proxy,
+            server: Arc::new(server),
         };
         match sv.check_proxy() {
             Ok(_) => {
@@ -238,24 +242,27 @@ impl ForwardProxy {
                 )
             );
         }
-        let server = TcpListener::bind(&self.addr)?;
         println!("Listening on: socks5://{}", self.addr);
         let proxy = Arc::new(self.proxy.clone());
-        for stream in server.incoming() {
-            match stream {
-                Ok(stream) => {
+
+        loop {
+            match self.server.accept() {
+                Ok((stream, _)) => {
                     let proxy = proxy.clone();
                     thread::spawn(move || {
                         Self::client(stream, proxy).unwrap();
                     });
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    println!("Failed to accept connection: {}", e);
                 }
             }
         }
+    }
 
-        Ok(())
+    pub fn stop(&self) {
+        println!("Action Stopping server");
+        exit(0)
     }
 }
 
