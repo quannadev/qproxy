@@ -174,7 +174,39 @@ impl ForwardProxy {
         Ok(())
     }
 
+    pub fn check_proxy(&self) -> Result<bool> {
+        let proxy = Arc::new(self.proxy.clone());
+        let mut remote = Self::remote(proxy)?;
+        let dest = "httpbin.org:80";
+        remote.write(&[
+            SOCKS_VERSION, // SOCKS version
+            0x01, // Connect
+            0x00, // Reserved
+            0x03, // Domain name
+            dest.len() as u8, // Domain name length
+        ])?;
+        remote.write(dest.as_bytes())?;
+        remote.write(&[0x00, 0x50])?;
+        let mut buffer: [u8; 10] = [0; 10];
+        remote.read(&mut buffer)?;
+        Ok(true)
+    }
+
     pub fn start(&self) -> Result<()> {
+        match self.check_proxy() {
+            Ok(_) => {
+                println!("Proxy is working");
+            }
+            Err(_) => {
+                println!("Proxy is not working");
+                return Err(
+                    Error::new(
+                        std::io::ErrorKind::Other,
+                        "Proxy is not working",
+                    )
+                );
+            }
+        }
         let server = TcpListener::bind(&self.addr)?;
         println!("Listening on: socks5://{}", self.addr);
         let proxy = Arc::new(self.proxy.clone());
