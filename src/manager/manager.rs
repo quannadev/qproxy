@@ -1,6 +1,6 @@
 #![allow(unused)]
 use crate::errors::ProxyError;
-use crate::{Proxy, ProxyServer};
+use crate::{Config, Proxy, ProxyServer};
 use log::{error, info, warn};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::collections::HashMap;
@@ -26,15 +26,15 @@ pub struct ProxyManager {
 }
 
 impl ProxyManager {
-    pub async fn new(proxies_path: &str, start_port: i16, rotate_interval: i64) -> Self {
-        let proxies = ProxyManager::load_proxies(proxies_path.to_string())
+    pub async fn new(config: &Config) -> Self {
+        let proxies = ProxyManager::load_proxies(config.proxies_path.to_string())
             .await
             .unwrap_or_default();
         ProxyManager {
             proxies: Arc::new(Mutex::new(proxies)),
             servers: Arc::new(Mutex::new(Vec::new())),
-            port_seq: AtomicI16::new(start_port),
-            rotate_interval,
+            port_seq: AtomicI16::new(config.port),
+            rotate_interval: config.rotate_interval,
         }
     }
 

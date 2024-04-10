@@ -26,7 +26,7 @@ impl FromStr for Proxy {
         if parts.len() < 3 {
             return Err("Invalid proxy string".to_string());
         }
-        let uri = parts[0].parse().expect("Invalid proxy URI");
+        let uri = parts[0].parse().expect("Invalid proxy IP");
         let port = parts[1].parse().expect("Invalid proxy port");
         if parts.len() == 2 {
             return Ok(Proxy {
