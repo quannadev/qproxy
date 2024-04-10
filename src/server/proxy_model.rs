@@ -2,15 +2,15 @@ use std::fmt::Display;
 use std::str::FromStr;
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ProxyAuth {
     pub user: String,
     pub pass: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Proxy {
-    pub uri: String,
+    pub ip: String,
     pub port: u16,
     pub auth: Option<ProxyAuth>,
     pub is_working: bool,
@@ -30,7 +30,7 @@ impl FromStr for Proxy {
         let port = parts[1].parse().expect("Invalid proxy port");
         if parts.len() == 2 {
             return Ok(Proxy {
-                uri,
+                ip: uri,
                 port,
                 auth: None,
                 is_working: false,
@@ -41,7 +41,7 @@ impl FromStr for Proxy {
         let user = parts[2].parse().expect("Invalid proxy user");
         let pass = parts[3].parse().expect("Invalid proxy pass");
         Ok(Proxy {
-            uri,
+            ip: uri,
             port,
             auth: Some(ProxyAuth { user, pass }),
             is_working: false,
@@ -54,8 +54,8 @@ impl FromStr for Proxy {
 impl Display for Proxy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match &self.auth {
-            Some(auth) => format!("{}:{}:{}:{}", self.uri, self.port, auth.user, auth.pass),
-            None => format!("{}:{}", self.uri, self.port),
+            Some(auth) => format!("{}:{}:{}:{}", self.ip, self.port, auth.user, auth.pass),
+            None => format!("{}:{}", self.ip, self.port),
         };
         write!(f, "{}", str)
     }

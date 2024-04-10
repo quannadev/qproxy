@@ -1,9 +1,12 @@
-mod proxy_server;
-mod proxy_model;
 mod config;
+mod server;
+mod manager;
+mod errors;
 
-pub use proxy_server::ForwardProxy;
+pub use server::ProxyServer;
 
-pub use proxy_model::{Proxy};
+pub use server::{Proxy};
 
 pub use config::Config;
+
+pub use manager::ProxyManager;
