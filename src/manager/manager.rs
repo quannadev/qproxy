@@ -145,7 +145,7 @@ impl ProxyManager {
         self.proxies.lock().await.push(proxy.clone());
         Some(proxy)
     }
-    
+
     async fn set_proxies(&self, list: Vec<Proxy>) {
         let mut proxies = self.proxies.lock().await;
         *proxies = list;

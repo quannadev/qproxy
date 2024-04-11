@@ -1,14 +1,15 @@
 use std::fmt::Display;
 use std::str::FromStr;
 use std::time::Duration;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ProxyAuth {
     pub user: String,
     pub pass: String,
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Proxy {
     pub ip: String,
     pub port: u16,

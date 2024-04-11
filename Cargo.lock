@@ -770,13 +770,14 @@ dependencies = [
 
 [[package]]
 name = "qproxy"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "clap",
  "env_logger",
  "log",
  "rayon",
  "reqwest",
+ "serde",
  "thiserror",
  "tokio",
 ]
