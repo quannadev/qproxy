@@ -38,6 +38,15 @@ impl ProxyManager {
         }
     }
 
+    pub fn default() -> Self {
+        ProxyManager {
+            proxies: Arc::new(Mutex::new(Vec::new())),
+            servers: Arc::new(Mutex::new(Vec::new())),
+            port_seq: AtomicI16::new(8080),
+            rotate_interval: 0,
+        }
+    }
+
     async fn load_proxies(proxies_path: String) -> Result<Vec<Proxy>, ProxyError> {
         let mut proxies = Vec::<Proxy>::new();
 
@@ -118,9 +127,8 @@ impl ProxyManager {
         self.servers.lock().await.clone().to_vec()
     }
 
-    pub async fn create_server(&self, proxy: Proxy) -> Result<SocketAddr, ProxyError> {
-        let last_port = self.port_seq.load(std::sync::atomic::Ordering::SeqCst);
-        let server = ProxyServer::new_with_proxy(last_port, proxy.clone())?;
+    pub async fn create_server(&self, proxy: Proxy, port: i16) -> Result<SocketAddr, ProxyError> {
+        let server = ProxyServer::new_with_proxy(port, proxy.clone())?;
         let server_addr = server.get_addr();
         let mut servers = self.servers.lock().await;
         servers.push(server.clone());
@@ -219,7 +227,8 @@ impl ProxyManager {
         }
         if self.servers().await.is_empty() {
             let last_proxy = self.get_last_proxy().await.expect("No proxies available");
-            let addr = self.create_server(last_proxy).await?;
+            let last_port = self.port_seq.load(std::sync::atomic::Ordering::SeqCst);
+            let addr = self.create_server(last_proxy, last_port).await?;
             info!("Started proxy server on: {}", addr);
         }
         //Self::test_browser();
