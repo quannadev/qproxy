@@ -132,9 +132,6 @@ impl ProxyManager {
         let server_addr = server.get_addr();
         let mut servers = self.servers.lock().await;
         servers.push(server.clone());
-
-        self.port_seq
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         tokio::spawn(async move { server.start() });
         Ok(server_addr)
     }
@@ -147,6 +144,11 @@ impl ProxyManager {
         let proxy = self.proxies.lock().await.remove(0);
         self.proxies.lock().await.push(proxy.clone());
         Some(proxy)
+    }
+    
+    async fn set_proxies(&self, list: Vec<Proxy>) {
+        let mut proxies = self.proxies.lock().await;
+        *proxies = list;
     }
 
     async fn get_server_by_proxy(&self, proxy: &Proxy) -> Option<ProxyServer> {
@@ -228,10 +230,11 @@ impl ProxyManager {
         if self.servers().await.is_empty() {
             let last_proxy = self.get_last_proxy().await.expect("No proxies available");
             let last_port = self.port_seq.load(std::sync::atomic::Ordering::SeqCst);
+            self.port_seq
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             let addr = self.create_server(last_proxy, last_port).await?;
             info!("Started proxy server on: {}", addr);
         }
-        //Self::test_browser();
         self.rotate_proxy().await?;
         Ok(())
     }
