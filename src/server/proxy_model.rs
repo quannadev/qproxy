@@ -24,7 +24,7 @@ impl FromStr for Proxy {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.split(":").collect();
-        if parts.len() < 3 {
+        if parts.len() < 2 {
             return Err("Invalid proxy string".to_string());
         }
         let uri = parts[0].parse().expect("Invalid proxy IP");
