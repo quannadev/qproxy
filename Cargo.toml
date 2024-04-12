@@ -1,6 +1,6 @@
 [package]
 name = "qproxy"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 authors = ["QuanNguyen<quanna.dev@gmail.com>"]
 repository = "https://github.com/quannadev/qproxy"

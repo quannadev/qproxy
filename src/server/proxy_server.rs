@@ -225,6 +225,7 @@ impl ProxyServer {
         let server = TcpListener::bind(self.addr)?;
         for stream in server.incoming() {
             if *self.should_stop.lock().unwrap() {
+                drop(server);
                 break;
             }
             match stream {
