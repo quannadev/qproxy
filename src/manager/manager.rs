@@ -146,7 +146,7 @@ impl ProxyManager {
         Some(proxy)
     }
 
-    async fn set_proxies(&self, list: Vec<Proxy>) {
+    pub async fn set_proxies(&self, list: Vec<Proxy>) {
         let mut proxies = self.proxies.lock().await;
         *proxies = list;
     }
@@ -176,7 +176,50 @@ impl ProxyManager {
         }
     }
 
-    async fn rotate_proxy(&self) -> Result<(), ProxyError> {
+    pub async fn rotate_proxy(&self) -> Result<(), ProxyError> {
+        //check list proxy
+        let proxies = self.proxies().await;
+        if proxies.is_empty() || proxies.len() < 2 {
+            return Err(ProxyError::ProxiesTooSmall(proxies.len() as u64));
+        }
+
+        info!("Rotating proxies: {}", proxies.len());
+        let servers = self.servers.lock().await;
+        info!("Check and rotating proxies for {} servers", servers.len());
+        for server in servers.iter() {
+            let old_proxy = server.get_proxy().unwrap();
+            let duration = server.get_duration().as_secs();
+            info!(
+                "Checking proxy: {} | server time {}s",
+                old_proxy.to_string(),
+                duration
+            );
+
+            if duration >= self.rotate_interval as u64 {
+                let new_proxy = match self.get_last_proxy().await {
+                    Some(p) => p,
+                    None => {
+                        error!("No proxies available for rotation");
+                        continue;
+                    }
+                };
+                if new_proxy.eq(&old_proxy) {
+                    warn!("New proxy is the same as the old proxy");
+                    continue;
+                }
+                server.set_proxy(new_proxy.clone());
+            } else {
+                info!(
+                    "Proxy {} is still fresh {} seconds",
+                    old_proxy.to_string(),
+                    duration
+                );
+            }
+        }
+        Ok(())
+    }
+
+    async fn auto_rotate_proxy(&self) -> Result<(), ProxyError> {
         info!("Rotating proxies");
         loop {
             if self.rotate_interval == 0 || self.proxies().await.is_empty() {
@@ -184,41 +227,7 @@ impl ProxyManager {
                 break;
             }
             time::sleep(Duration::from_secs(self.rotate_interval as u64)).await;
-
-            let servers = self.servers.lock().await;
-            info!("Check and rotating proxies for {} servers", servers.len());
-
-            for server in servers.iter() {
-                let old_proxy = server.get_proxy().unwrap();
-                let duration = server.get_duration().as_secs();
-                info!(
-                    "Checking proxy: {} | server time {}s",
-                    old_proxy.to_string(),
-                    duration
-                );
-
-                if duration >= self.rotate_interval as u64 {
-                    let new_proxy = match self.get_last_proxy().await {
-                        Some(p) => p,
-                        None => {
-                            error!("No proxies available for rotation");
-                            continue;
-                        }
-                    };
-                    if new_proxy.eq(&old_proxy) {
-                        warn!("New proxy is the same as the old proxy");
-                        continue;
-                    }
-                    server.set_proxy(new_proxy.clone());
-                } else {
-                    info!(
-                        "Proxy {} is still fresh {} seconds",
-                        old_proxy.to_string(),
-                        duration
-                    );
-                }
-            }
-            drop(servers)
+            self.rotate_proxy().await?;
         }
         info!("Rotating proxies finished");
         Ok(())
