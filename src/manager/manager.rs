@@ -169,6 +169,7 @@ impl ProxyManager {
                 let addr = server.get_addr();
                 let mut servers = self.servers.lock().await;
                 servers.retain(|x| x.get_addr() != addr);
+                server.stop();
                 Ok(())
             }
             None => Err(ProxyError::ServerError("Server not found".to_string())),
